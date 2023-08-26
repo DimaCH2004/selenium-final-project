@@ -1,5 +1,6 @@
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.testng.Assert;
@@ -15,8 +16,18 @@ public class SeleniumFinalProject extends TestSetup {
     @Test
     public void testSwoop() throws InterruptedException {
         navigateToWebsite();
-        selectFirstMovie();
-        selectCinema();
+        int index = 0;
+        boolean validFilm = false;
+        while (!validFilm){
+            selectFirstMovie(index);
+            try{
+                selectCinema();
+                validFilm = true;
+            }catch(NoSuchElementException e){
+                index++;
+                driver.navigate().back();
+            }
+        }
         selectDateAndOption();
         validatePopupDetails();
         chooseSeatAndRegister();
@@ -24,13 +35,13 @@ public class SeleniumFinalProject extends TestSetup {
     }
     private void navigateToWebsite() {
         driver.navigate().to("https://www.swoop.ge");
-    }
-    private void selectFirstMovie() {
         WebElement filmButton = driver.findElement(By.linkText("კინო"));
         filmButton.click();
+    }
+    private void selectFirstMovie(int filmIndex) {
         wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.cssSelector("div.container.cinema_container .movies-deal")));
         List<WebElement> films = driver.findElements(By.cssSelector("div.container.cinema_container .movies-deal"));
-        WebElement movieToBuy = films.get(1);
+        WebElement movieToBuy = films.get(filmIndex);
         movieName = movieToBuy.getText();
         action.moveToElement(movieToBuy).build().perform();
         WebElement linkElement = driver.findElement(By.linkText("ყიდვა"));
@@ -42,6 +53,11 @@ public class SeleniumFinalProject extends TestSetup {
         js.executeScript("arguments[0].scrollIntoView(true);", cinema);
         js.executeScript("window.scrollBy(0,-100);");
         cinema.click();
+        List<WebElement> validateOptions = driver.findElements(By.xpath("//div[@aria-hidden='false']//a//p[@class=\"cinema-title\"]"));
+        validateOptions.removeIf(list -> !list.isEnabled() || !list.isDisplayed());
+        for (WebElement option:validateOptions){
+            Assert.assertEquals(option.getText(),"კავეა ისთ ფოინთი");
+        }
     }
     private void selectDateAndOption() {
         List<WebElement> dateElements = driver.findElements(By.xpath("//ul[@role='tablist']/li/a[@class='ui-tabs-anchor' and @role='presentation' and contains(@href, 'day-choose-')]"));
